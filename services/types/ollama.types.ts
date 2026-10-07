@@ -47,8 +47,16 @@ export interface OpenIAResponse {
     message: {
       role: 'user' | 'assistant' | 'system';
       content: string;
+      tool_calls?: Array<{
+        id: string;
+        type: 'function';
+        function: {
+          name: string;
+          arguments: string | Record<string, unknown>;
+        };
+      }>;
     };
   }>;
-  created: number;
-  model: string;
+  created?: number;
+  model?: string;
 }

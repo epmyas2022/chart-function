@@ -52,48 +52,87 @@ export class ChartAssistantService {
     activeChartState?: Record<string, unknown> | null,
     datasetContext?: { file: string; fields: string } | null,
   ) {
-    let systemContent = `
-    # Rol
-    You are a graphical tool call assistant. Created by developer isaacdev.site."
-          
-    ## Context data
-    The user is working with the dataset: "${datasetContext?.file || 'unknown'}".
-    The available fields are: ${datasetContext?.fields || ''}.`;
+    const SYSTEM_PROMPT = `# Role
+You are an expert chart-controlling tool assistant. Prioritize precision over creativity.
+- DO NOT invent or rename fields.
+- DO NOT output conversational text; call the tool directly.
 
+# Core Process
+Before calling a tool, map out: user intent, target tool, dimension, metric, aggregation, order, limit, colors, and filters. ONLY use fields from the provided \`available fields\`.
+
+# Tool Selection
+- \`create_chart\`: Use when the user asks to "create", "draw", "make" a chart, OR when the "Current chart state" is "No active chart."
+- \`update_chart\`: Use ONLY when an active chart already exists AND the user asks to change, modify, update, reorder, filter, or tweak it.
+
+# Dimension Rules
+Dimensions group data into categories.
+- "products" -> use the product name field.
+- "categories" -> use the category field.
+- "regions" -> use the region field.
+- "years" -> use the year field.
+NEVER use an \`id\` field as a dimension if a descriptive text field exists.`;
+
+    let chartStateText = "No active chart.";
     if (activeChartState) {
       const state = activeChartState;
-      const lines = [
+      chartStateText = [
         `- Chart type: ${state.chart_type ?? "unknown"}`,
         `- Dimension (X axis): ${state.dimension ?? "unknown"}`,
         `- Metric (Y axis): ${state.metric ?? "unknown"}`,
-        state.metric_y   ? `- Metric Y (scatter): ${state.metric_y}` : null,
-        state.limit      ? `- Limit: ${state.limit} items` : null,
+        state.metric_y ? `- Metric Y (scatter): ${state.metric_y}` : null,
+        state.limit ? `- Limit: ${state.limit} items` : null,
         state.sort_direction ? `- Sort: ${state.sort_direction}` : null,
-        state.title      ? `- Title: ${state.title}` : null,
+        state.title ? `- Title: ${state.title}` : null,
       ]
         .filter(Boolean)
         .join("\n");
-
-      systemContent += `\n\n## Current chart state (what the user is seeing right now)\n${lines}`;
     }
 
-    if (lastToolCall) {
-      systemContent += `\n\n## Last tool executed\n${JSON.stringify(lastToolCall, null, 2)}`;
-    }
+    const lastToolText = lastToolCall
+      ? JSON.stringify(lastToolCall, null, 2)
+      : "No previous tools executed.";
 
-    const systemPrompt: OllamaMessage = {
+    // Get the actual user request from the last message
+    const lastMessage = messages[messages.length - 1];
+    const userMessage = lastMessage ? lastMessage.content : "";
+
+    const userContent = `## Context data
+The user is working with the dataset: "${datasetContext?.file || "unknown"}".
+The available fields are: ${datasetContext?.fields || ""}.
+
+## Current chart state
+${chartStateText}
+
+## Last tool executed
+${lastToolText}
+
+## User request
+${userMessage}`;
+
+    const systemPromptMsg: OllamaMessage = {
       role: "system",
-      content: systemContent,
+      content: SYSTEM_PROMPT,
     };
 
+    // Replace the content of the last user message with the enriched userContent
+    const updatedMessages = [...messages];
+    if (updatedMessages.length > 0) {
+      updatedMessages[updatedMessages.length - 1] = {
+        ...updatedMessages[updatedMessages.length - 1],
+        content: userContent,
+      };
+    }
+
     console.log("=== ENVIANDO A OLLAMA ===");
-    console.log(JSON.stringify([systemPrompt, ...messages], null, 2));
+    console.log(JSON.stringify([systemPromptMsg, ...updatedMessages], null, 2));
+
 
     const request = {
       model: this.modelName,
       stream: false,
-      messages: [systemPrompt, ...messages],
+      messages: [systemPromptMsg, ...updatedMessages],
       tools: this.getAvailableTools(),
+      cache_prompt: true,
     };
 
     return this.ollamaService.generateChatCompletion(request);
