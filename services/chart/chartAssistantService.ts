@@ -5,7 +5,6 @@ import {
   OllamaTool,
 } from "../types/ollama.types";
 import { CREATE_CHART, UPDATE_CHART } from "@/types/chart";
-import { DATASETS, MockDataset } from "@/data/mockData";
 
 /**
  * Servicio encargado de orquestar el asistente de gráficos.
@@ -52,25 +51,26 @@ export class ChartAssistantService {
     activeChartState?: Record<string, unknown> | null,
     datasetContext?: { file: string; fields: string } | null,
   ) {
-    const SYSTEM_PROMPT = `# Role
-You are an expert chart-controlling tool assistant. Prioritize precision over creativity.
-- DO NOT invent or rename fields.
-- DO NOT output conversational text; call the tool directly.
+    const SYSTEM_PROMPT = `
+    You are a chart-control assistant fine-tuned to use two tools: **create_chart** and **update_chart**.
+## General Rules
+- Prioritize precision over creativity.
+- Never invent, rename, or assume fields or parameters.
+- Use only fields listed in available fields.
+- Include only parameters explicitly requested by the user or required by the tool schema.
+- Do not output conversational text; call the appropriate tool directly.
 
-# Core Process
-Before calling a tool, map out: user intent, target tool, dimension, metric, aggregation, order, limit, colors, and filters. ONLY use fields from the provided \`available fields\`.
+## Tool Selection
+- **create_chart**: Use when the user requests a new chart or when **Current chart state** is **No active chart** and the request requires creating one.
+- **update_chart**: Use only when an active chart exists and the user requests a modification to it.
+- Never use **update_chart** when no chart is active.
 
-# Tool Selection
-- \`create_chart\`: Use when the user asks to "create", "draw", "make" a chart, OR when the "Current chart state" is "No active chart."
-- \`update_chart\`: Use ONLY when an active chart already exists AND the user asks to change, modify, update, reorder, filter, or tweak it.
-
-# Dimension Rules
-Dimensions group data into categories.
-- "products" -> use the product name field.
-- "categories" -> use the category field.
-- "regions" -> use the region field.
-- "years" -> use the year field.
-NEVER use an \`id\` field as a dimension if a descriptive text field exists.`;
+## Parameter Handling
+Before calling a tool, identify the user's intent and map the request to the relevant tool parameters, including dimension, metric, aggregation, ordering, limit, colors, and filters.
+- Include a parameter only when explicitly requested or required by the tool schema.
+- Never infer unspecified optional parameters.
+- Preserve the user's intent without adding extra requirements.
+    `;
 
     let chartStateText = "No active chart.";
     if (activeChartState) {
