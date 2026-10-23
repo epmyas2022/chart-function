@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import ChatArea from './ChatArea';
 import ChartArea from './ChartArea';
-import { CreateChartParams, UpdateChartParams } from '@/types/chart';
-import { DATASETS, MockDataset } from '@/data/mockData';
+import { CreateChartParams, UpdateChartParams, DatasetItem } from '@/types/chart';
+import { DATASETS } from '@/data/mockData';
 
 export interface ChatMessage {
   id: string;
@@ -21,7 +21,7 @@ export default function Dashboard() {
   const [chartConfig, setChartConfig] = useState<CreateChartParams | null>(null);
   const [chartUpdates, setChartUpdates] = useState<UpdateChartParams | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [allDatasets, setAllDatasets] = useState<Record<string, { label: string, file: string, data: any[] }>>(DATASETS);
+  const [allDatasets, setAllDatasets] = useState<Record<string, DatasetItem>>(DATASETS);
   const [selectedDataset, setSelectedDataset] = useState<string>('productos');
   const [activeMobileTab, setActiveMobileTab] = useState<'chat' | 'chart'>('chat');
   const [hasNewChartNotice, setHasNewChartNotice] = useState(false);

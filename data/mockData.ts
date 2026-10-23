@@ -1,3 +1,5 @@
+import { DatasetItem } from '@/types/chart';
+
 export const mockProducts = [
   { id: 1, productos: 'Laptop Pro',           precio_venta: 1500, cantidad: 10, categoria: 'Laptops',      ventas_total: 15000, margen: 35 },
   { id: 2, productos: 'Smartphone X',         precio_venta: 900,  cantidad: 20, categoria: 'Smartphones',  ventas_total: 18000, margen: 28 },
@@ -52,7 +54,7 @@ export const mockCampanasMarketing = [
 
 export type MockDataset = 'productos' | 'ventas_regionales' | 'empleados' | 'campanas_marketing';
 
-export const DATASETS: Record<MockDataset, { label: string; file: string; data: object[] }> = {
+export const DATASETS: Record<MockDataset, DatasetItem> = {
   productos:           { label: 'productos.xlsx',           file: 'productos.xlsx',           data: mockProducts },
   ventas_regionales:   { label: 'ventas_regionales.xlsx',   file: 'ventas_regionales.xlsx',   data: mockVentasRegionales },
   empleados:           { label: 'empleados.xlsx',           file: 'empleados.xlsx',           data: mockEmpleados },

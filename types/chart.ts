@@ -4,6 +4,14 @@ export interface Filter {
   value: unknown;
 }
 
+export type DatasetRecord = Record<string, unknown>;
+
+export interface DatasetItem {
+  label: string;
+  file: string;
+  data: DatasetRecord[];
+}
+
 export interface CreateChartParams {
   chart_type: 'bar' | 'line' | 'pie' | 'scatter';
   dimension?: string;

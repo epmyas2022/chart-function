@@ -13,9 +13,11 @@ import {
   Title,
   Tooltip,
   Legend,
+  ChartData,
+  ChartDataset,
 } from 'chart.js';
 import { Bar, Line, Pie, Scatter } from 'react-chartjs-2';
-import { CreateChartParams, UpdateChartParams } from '@/types/chart';
+import { CreateChartParams, UpdateChartParams, DatasetItem, DatasetRecord } from '@/types/chart';
 
 ChartJS.register(
   CategoryScale,
@@ -29,14 +31,16 @@ ChartJS.register(
   Legend
 );
 
+type SupportedChartType = 'bar' | 'line' | 'pie' | 'scatter';
+
 interface ChartAreaProps {
   config: CreateChartParams | null;
   updates: UpdateChartParams | null;
   isLoading: boolean;
-  allDatasets: Record<string, { label: string, file: string, data: any[] }>;
+  allDatasets: Record<string, DatasetItem>;
   selectedDataset: string;
   onDatasetChange: (dataset: string) => void;
-  onAddDataset: (key: string, dataset: { label: string, file: string, data: any[] }) => void;
+  onAddDataset: (key: string, dataset: DatasetItem) => void;
   onBackToChat?: () => void;
 }
 
@@ -92,7 +96,7 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
   const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const activeData = allDatasets[selectedDataset]?.data as Record<string, unknown>[] || [];
+  const activeData = allDatasets[selectedDataset]?.data || [];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,7 +109,7 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
         const wb = XLSX.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+        const data = XLSX.utils.sheet_to_json<DatasetRecord>(ws);
         
         if (data.length > 0) {
           const newKey = file.name.replace(/\.[^/.]+$/, "").toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
@@ -129,10 +133,10 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
     }
   };
 
-  const chartData = useMemo(() => {
+  const chartData = useMemo<ChartData<SupportedChartType> | null>(() => {
     if (!config) return null;
 
-    const activeData = allDatasets[selectedDataset]?.data as Record<string, unknown>[] || [];
+    const activeData = allDatasets[selectedDataset]?.data || [];
     let data = [...activeData];
     
     // Sort
@@ -151,11 +155,11 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
 
     const firstKey = Object.keys(activeData[0] ?? {})[1] ?? 'id';
     const dimensionKey = updates?.dimension || config.dimension || firstKey;
-    const labels = data.map(item => item[dimensionKey] as string);
+    const labels = data.map(item => String(item[dimensionKey] ?? ''));
     const type = updates?.chart_type || config.chart_type;
     const userColors = updates?.colors?.length ? updates.colors : (config.colors?.length ? config.colors : ['#2563eb']);
     
-    let datasets: any[] = [];
+    let datasets: ChartDataset<SupportedChartType>[] = [];
 
     if (type === 'scatter') {
       const metricY = (updates?.metric_y || config.metric_y) as string;
@@ -191,7 +195,7 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
     }
 
     return { labels, datasets };
-  }, [config, updates, selectedDataset]);
+  }, [config, updates, selectedDataset, allDatasets]);
 
   const chartOptions = useMemo(() => {
     const showGrid = updates?.show_grid ?? true;
@@ -277,20 +281,20 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
 
     switch (type) {
       case 'line':
-        return wrap(<Line options={chartOptions} data={chartData} />);
+        return wrap(<Line options={chartOptions} data={chartData as ChartData<'line'>} />);
       case 'pie':
-        return wrap(<Pie options={{ ...chartOptions, scales: {} }} data={chartData} />);
+        return wrap(<Pie options={{ ...chartOptions, scales: {} }} data={chartData as ChartData<'pie'>} />);
       case 'scatter':
-        return wrap(<Scatter options={chartOptions} data={chartData} />);
+        return wrap(<Scatter options={chartOptions} data={chartData as ChartData<'scatter'>} />);
       case 'bar':
       default:
-        return wrap(<Bar options={chartOptions} data={chartData} />);
+        return wrap(<Bar options={chartOptions} data={chartData as ChartData<'bar'>} />);
     }
   };
 
   return (
     <div className="flex-1 p-2 sm:p-4 md:p-8 bg-zinc-50 flex flex-col items-center justify-center min-h-0 h-full w-full overflow-hidden">
-      <div className="w-full max-w-4xl bg-white rounded-xl shadow-xs border border-zinc-200/80 flex flex-col h-full md:h-[700px] min-h-0 overflow-hidden">
+      <div className="w-full max-w-4xl bg-white rounded-xl shadow-xs border border-zinc-200/80 flex flex-col h-full md:h-[700px] overflow-hidden">
         {/* Header con Tabs y Select */}
         <div className="flex flex-col border-b border-zinc-100 shrink-0">
           <div className="p-3.5 sm:p-6 pb-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
