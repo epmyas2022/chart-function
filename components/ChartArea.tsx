@@ -37,6 +37,7 @@ interface ChartAreaProps {
   selectedDataset: string;
   onDatasetChange: (dataset: string) => void;
   onAddDataset: (key: string, dataset: { label: string, file: string, data: any[] }) => void;
+  onBackToChat?: () => void;
 }
 
 function SkeletonBlock({
@@ -87,7 +88,7 @@ function SkeletonBlock({
   );
 }
 
-export default function ChartArea({ config, updates, isLoading, allDatasets, selectedDataset, onDatasetChange, onAddDataset }: ChartAreaProps) {
+export default function ChartArea({ config, updates, isLoading, allDatasets, selectedDataset, onDatasetChange, onAddDataset, onBackToChat }: ChartAreaProps) {
   const [activeTab, setActiveTab] = useState<'chart' | 'table'>('chart');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -203,13 +204,17 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
       plugins: {
         legend: {
           position: 'top' as const,
-          labels: { color: '#71717a' }
+          labels: {
+            color: '#71717a',
+            boxWidth: 12,
+            font: { size: 11 }
+          }
         },
         title: {
           display: true,
           text: title,
           color: '#3f3f46',
-          font: { size: 16 }
+          font: { size: 14 }
         },
       },
       scales: {
@@ -218,13 +223,19 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
             display: showGrid,
             color: '#f4f4f5'
           },
-          ticks: { color: '#71717a' }
+          ticks: {
+            color: '#71717a',
+            font: { size: 11 }
+          }
         },
         x: {
           grid: {
             display: false
           },
-          ticks: { color: '#71717a' }
+          ticks: {
+            color: '#71717a',
+            font: { size: 11 }
+          }
         }
       }
     };
@@ -233,18 +244,35 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
   const renderChart = () => {
     if (!config || !chartData) {
       return (
-        <div className="flex-1 flex flex-col items-center justify-center text-zinc-400">
-          <svg className="w-16 h-16 mb-4 text-zinc-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <p>El gráfico aparecerá aquí cuando se procese tu solicitud.</p>
+        <div className="flex-1 h-full min-h-[220px] flex flex-col items-center justify-center text-zinc-400 p-4 sm:p-6 text-center">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-zinc-100 flex items-center justify-center mb-3 sm:mb-4 text-zinc-400">
+            <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <p className="text-sm font-semibold text-zinc-700 mb-1">Aún no hay gráfico para mostrar</p>
+          <p className="text-xs text-zinc-400 max-w-xs leading-relaxed">
+            Escribe en el chat qué datos deseas graficar y el asistente lo generará aquí.
+          </p>
+          {onBackToChat && (
+            <button
+              type="button"
+              onClick={onBackToChat}
+              className="md:hidden mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-xs active:scale-95"
+            >
+              <span>Ir al Chat</span>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          )}
         </div>
       );
     }
 
     const type = updates?.chart_type || config.chart_type;
     const wrap = (el: React.ReactElement) => (
-      <div style={{ width: '100%', height: '100%' }}>{el}</div>
+      <div style={{ width: '100%', height: '100%', minHeight: '260px' }}>{el}</div>
     );
 
     switch (type) {
@@ -261,23 +289,38 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
   };
 
   return (
-    <div className="flex-1 p-8 bg-zinc-50 flex flex-col items-center h-screen">
-      <div className="w-full max-w-4xl bg-white rounded-xl shadow-sm border border-zinc-100 flex flex-col h-[700px]">
+    <div className="flex-1 p-2 sm:p-4 md:p-8 bg-zinc-50 flex flex-col items-center justify-center min-h-0 h-full w-full overflow-hidden">
+      <div className="w-full max-w-4xl bg-white rounded-xl shadow-xs border border-zinc-200/80 flex flex-col h-full md:h-[700px] min-h-0 overflow-hidden">
         {/* Header con Tabs y Select */}
-        <div className="flex flex-col border-b border-zinc-100">
-          <div className="p-6 pb-0 flex justify-between items-start">
-            <div>
-              <h3 className="text-lg font-semibold text-zinc-800">Visualización de Datos</h3>
-              <p className="text-sm text-zinc-500">Resultados procesados en tiempo real</p>
+        <div className="flex flex-col border-b border-zinc-100 shrink-0">
+          <div className="p-3.5 sm:p-6 pb-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="flex items-center justify-between w-full sm:w-auto">
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold text-zinc-800 leading-tight">Visualización de Datos</h3>
+                <p className="text-xs sm:text-sm text-zinc-500">Resultados procesados en tiempo real</p>
+              </div>
+              {onBackToChat && (
+                <button
+                  type="button"
+                  onClick={onBackToChat}
+                  className="md:hidden inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200/80 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span>Chat</span>
+                </button>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial min-w-0">
                 <label htmlFor="source-select" className="sr-only">Fuente</label>
                 <select
                   id="source-select"
                   value={selectedDataset}
                   onChange={e => onDatasetChange(e.target.value)}
-                  className="appearance-none bg-zinc-50 border border-zinc-200 text-zinc-700 py-2 pl-4 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium cursor-pointer shadow-sm hover:bg-zinc-100"
+                  className="w-full sm:w-auto appearance-none bg-zinc-50 border border-zinc-200 text-zinc-700 py-1.5 sm:py-2 pl-3 sm:pl-4 pr-8 sm:pr-10 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium cursor-pointer shadow-xs hover:bg-zinc-100 truncate max-w-full sm:max-w-[240px]"
                 >
                   {Object.keys(allDatasets).map(key => (
                     <option key={key} value={key}>
@@ -285,7 +328,7 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-500">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -302,20 +345,21 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center justify-center w-9 h-9 bg-zinc-50 border border-zinc-200 text-zinc-600 rounded-lg hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-zinc-50 border border-zinc-200 text-zinc-600 rounded-lg hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shrink-0 active:scale-95"
                 title="Cargar archivo externo (.xlsx, .csv)"
+                aria-label="Cargar archivo externo"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                 </svg>
               </button>
             </div>
           </div>
 
-          <div className="flex px-6 mt-6 gap-6">
+          <div className="flex px-3.5 sm:px-6 mt-3 sm:mt-6 gap-4 sm:gap-6">
             <button 
               onClick={() => setActiveTab('chart')}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`pb-2.5 sm:pb-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'chart' 
                   ? 'border-blue-600 text-blue-600' 
                   : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
@@ -325,19 +369,19 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
             </button>
             <button 
               onClick={() => setActiveTab('table')}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`pb-2.5 sm:pb-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'table' 
                   ? 'border-blue-600 text-blue-600' 
                   : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
               }`}
             >
-              Tabla de Datos
+              Tabla de Datos {activeData.length > 0 && `(${activeData.length})`}
             </button>
           </div>
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 min-h-0 p-6 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 p-3 sm:p-6 flex flex-col overflow-hidden">
           {isLoading ? (
             <div className="flex-1 w-full flex flex-col gap-3 p-2">
 
@@ -346,12 +390,12 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
               <SkeletonBlock width="28%" height="10px" delay={80} />
 
               {/* Block: main content area */}
-              <SkeletonBlock width="100%" height="220px" delay={160} radius="12px" />
+              <SkeletonBlock width="100%" height="200px" delay={160} radius="12px" />
 
               {/* Block: two side-by-side strips */}
               <div className="flex gap-3">
-                <SkeletonBlock width="50%" height="60px" delay={240} radius="8px" />
-                <SkeletonBlock width="50%" height="60px" delay={320} radius="8px" />
+                <SkeletonBlock width="50%" height="50px" delay={240} radius="8px" />
+                <SkeletonBlock width="50%" height="50px" delay={320} radius="8px" />
               </div>
 
               {/* Block: three narrow label strips */}
@@ -398,34 +442,36 @@ export default function ChartArea({ config, updates, isLoading, allDatasets, sel
               `}</style>
             </div>
           ) : activeTab === 'chart' ? (
-            <div className="flex-1 min-h-0 w-full relative">
+            <div className="flex-1 min-h-0 w-full h-full relative">
               {renderChart()}
             </div>
           ) : (
-            <div className="flex-1 overflow-auto rounded-lg border border-zinc-100">
+            <div className="flex-1 min-h-0 overflow-auto rounded-lg border border-zinc-100">
               {activeData.length > 0 ? (
-                <table className="w-full text-sm text-left text-zinc-600">
-                  <thead className="text-xs text-zinc-500 uppercase bg-zinc-50 border-b border-zinc-200 sticky top-0">
-                    <tr>
-                      {Object.keys(activeData[0]).map(col => (
-                        <th key={col} scope="col" className="px-4 py-3 font-medium whitespace-nowrap">
-                          {col.replace(/_/g, ' ')}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeData.map((row, i) => (
-                      <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
-                        {Object.values(row).map((val, j) => (
-                          <td key={j} className="px-4 py-3 whitespace-nowrap">
-                            {String(val ?? '—')}
-                          </td>
+                <div className="overflow-x-auto min-w-full">
+                  <table className="w-full text-xs sm:text-sm text-left text-zinc-600">
+                    <thead className="text-[11px] sm:text-xs text-zinc-500 uppercase bg-zinc-50 border-b border-zinc-200 sticky top-0">
+                      <tr>
+                        {Object.keys(activeData[0]).map(col => (
+                          <th key={col} scope="col" className="px-3 sm:px-4 py-2.5 sm:py-3 font-medium whitespace-nowrap">
+                            {col.replace(/_/g, ' ')}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {activeData.map((row, i) => (
+                        <tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
+                          {Object.values(row).map((val, j) => (
+                            <td key={j} className="px-3 sm:px-4 py-2 sm:py-3 whitespace-nowrap">
+                              {String(val ?? '—')}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <p className="p-6 text-sm text-zinc-400">No hay datos disponibles.</p>
               )}
